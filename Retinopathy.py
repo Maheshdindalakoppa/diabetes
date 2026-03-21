@@ -1,43 +1,32 @@
 import streamlit as st
-import pickle
 import pandas as pd
+from joblib import load
 
-st.title("Diabetic Retinopathy Predictor")
+@st.cache_resource
+def load_model_and_scaler():
+    model = load("logreg_model.joblib")
+    scaler = load("scaler.joblib")
+    return model, scaler
 
-# Load pre-trained model and scaler
-model = pickle.load(open("logreg_model.pkl", "rb"))
-scaler = pickle.load(open("scaler.pkl", "rb"))
+model, scaler = load_model_and_scaler()
 
-# Input fields
-st.write("### Enter Patient Data")
-age = st.number_input("Age", min_value=10, max_value=90, value=50)
-systolic_bp = st.number_input("Systolic BP", min_value=70, max_value=150, value=120)
-diastolic_bp = st.number_input("Diastolic BP", min_value=60, max_value=120, value=80)
-cholesterol = st.number_input("Cholesterol", min_value=70, max_value=130, value=100)
+st.title("Diabetic Retinopathy Prediction")
+st.write("Enter patient data below:")
+
+age = st.number_input("Age", min_value=0, max_value=120, value=30)
+systolic_bp = st.number_input("Systolic Blood Pressure", min_value=50, max_value=250, value=120)
+diastolic_bp = st.number_input("Diastolic Blood Pressure", min_value=30, max_value=150, value=80)
+cholesterol = st.number_input("Cholesterol", min_value=100, max_value=400, value=200)
 
 if st.button("Predict"):
-    # Prepare input
     input_data = pd.DataFrame([[age, systolic_bp, diastolic_bp, cholesterol]],
-                              columns=["age", "systolic_bp", "diastolic_bp", "cholesterol"])
-    
-    # Scale input
+                              columns=['age','systolic_bp','diastolic_bp','cholesterol'])
     input_scaled = scaler.transform(input_data)
     
-    # Predict
     prediction = model.predict(input_scaled)[0]
     probability = model.predict_proba(input_scaled)[0][1]
-    prob_percent = probability * 100
     
-    # Show result
-    st.subheader("Prediction Result")
-    if prediction == 1:
-        st.error(f"Predicted: Diabetic Retinopathy ({prob_percent:.1f}%)")
-    else:
-        st.success(f"Predicted: No Retinopathy ({prob_percent:.1f}%)")
-    
-    # Show progress bar
-    st.progress(int(prob_percent))
-    
-    # Optional: Show input data
-    st.write("### Entered Patient Data")
+    st.subheader("Prediction Results")
+    st.write(f"**Predicted Class:** {prediction} (0 = No Retinopathy, 1 = Retinopathy)")
+    st.write(f"**Probability of Retinopathy:** {probability:.2f}")write("### Entered Patient Data")
     st.write(f"Age: {age}, Systolic BP: {systolic_bp}, Diastolic BP: {diastolic_bp}, Cholesterol: {cholesterol}")
